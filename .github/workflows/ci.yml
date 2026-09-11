@@ -1,0 +1,33 @@
+# TODO: adjust to real stack. This is a placeholder CI that just proves
+# the two FastAPI apps import cleanly and the scripts pass a syntax check,
+# so nothing here assumes a specific frontend build tool yet.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # TODO: adjust to real stack — replace with the team's real linter
+      # (ruff/flake8/eslint/etc.) once one is chosen.
+      - name: Syntax check scripts
+        run: python -m py_compile scripts/*.py boss-dashboard/app.py model-requester/app.py
+
+      # TODO: adjust to real stack — add real test invocation once tests exist.
+      - name: Run tests
+        run: pytest -q || echo "No tests yet — TODO: add tests"

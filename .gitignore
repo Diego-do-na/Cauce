@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+boss-dashboard/_mirror/
+.agents/
+SETUP.md
