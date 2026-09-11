@@ -5,3 +5,4 @@ venv/
 boss-dashboard/_mirror/
 .agents/
 SETUP.md
+.env

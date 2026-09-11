@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 
 
 class CauceError(Exception):
@@ -64,6 +65,14 @@ def find_repo_root(start: Path | None = None) -> Path:
 REPO_ROOT = find_repo_root()
 TASKS_FILE = REPO_ROOT / "tasks.yaml"
 DISCORD_MAP_FILE = REPO_ROOT / "discord_map.yaml"
+
+# Every script and both apps import common.py, so this is the one place
+# that needs to load .env — DISCORD_WEBHOOK_URL / DISCORD_BOT_TOKEN end up
+# in os.environ from here on, exactly as if they'd been exported by hand.
+# Missing .env is fine (nothing to load); an existing shell export always
+# wins over .env (override=False) so a one-off `export ...=...` in your
+# terminal still takes precedence for testing.
+load_dotenv(REPO_ROOT / ".env", override=False)
 
 
 # ---------------------------------------------------------------------------
