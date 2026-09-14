@@ -1,5 +1,5 @@
 # tasks.yaml — the single source of truth for Cauce's task board.
-# NEVER edit this file by hand outside of scripts/*.py.
+# NEVER edit this file by hand outside of orchestration/scripts/*.py.
 # See git history / README.md for the full schema.
 tasks:
 - id: T001
@@ -13,11 +13,12 @@ tasks:
   - src/
   - pyproject.toml
   depends_on: []
-  suggested_model: claude-sonnet
-  status: claimed
-  owner: TuNombre
-  branch: task/T001
-  claimed_at: '2026-09-11T01:44:33+00:00'
+  test_paths: []
+  suggested_model: sonnet
+  status: todo
+  owner: null
+  branch: null
+  claimed_at: null
   done_at: null
 - id: T002
   title: Implement the health check endpoint
@@ -30,7 +31,9 @@ tasks:
   - tests/test_health.py
   depends_on:
   - T001
-  suggested_model: cursor
+  test_paths:
+  - tests/test_health.py
+  suggested_model: haiku
   status: todo
   owner: null
   branch: null

@@ -1,6 +1,7 @@
 # discord_map.yaml — maps the "owner" name used in tasks.yaml (and passed
 # via --owner / git config user.name) to a Discord user id, so
-# scripts/notify_discord.py can DM the right person in bot-token mode.
+# orchestration/scripts/notify_discord.py can DM the right person in
+# bot-token mode.
 #
 # How to get a user's id: enable Developer Mode in Discord
 # (Settings > Advanced > Developer Mode), then right-click their name

@@ -5,12 +5,13 @@ This is the one place task-creation logic lives; model-requester's web
 app imports `add_task()` directly instead of reimplementing this.
 
 CLI:
-    python scripts/add_task.py \\
+    python orchestration/scripts/add_task.py \\
         --title "Add pagination to /tasks" \\
         --description "..." \\
         --scope src/api/tasks.py --scope tests/test_tasks.py \\
+        --test-path tests/test_tasks.py \\
         --depends-on T001 \\
-        --suggested-model claude-sonnet
+        --suggested-model sonnet
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
-from common import CauceError, fail, load_tasks, push_tasks_with_retry, tasks_by_id
+from common import CauceError, assert_main_checkout, fail, load_tasks, push_tasks_with_retry, tasks_by_id
 
 
 def add_task(
@@ -27,11 +28,20 @@ def add_task(
     scope: list[str],
     depends_on: list[str] | None = None,
     suggested_model: str = "",
+    test_paths: list[str] | None = None,
     max_attempts: int = 5,
 ) -> str:
     """Validates, appends, commits, and pushes a new task. Returns the new
-    task's id. Raises CauceError on any validation or git failure."""
+    task's id. Raises CauceError on any validation or git failure.
+
+    test_paths is optional and empty by default — not every task needs
+    one (a DB-scaffolding task doesn't; "measure this endpoint's latency"
+    should). Whoever writes the task decides, per task; finish_task.py
+    runs whatever's declared here (via CAUCE_TEST_CMD, default "pytest")
+    as a gate before it'll merge the task's branch into main."""
+    assert_main_checkout()
     depends_on = depends_on or []
+    test_paths = test_paths or []
     if not title.strip():
         raise CauceError("title is required")
     if not scope:
@@ -58,6 +68,7 @@ def add_task(
                 "description": description,
                 "scope": list(scope),
                 "depends_on": list(depends_on),
+                "test_paths": list(test_paths),
                 "suggested_model": suggested_model,
                 "status": "todo",
                 "owner": None,
@@ -79,6 +90,15 @@ def main() -> None:
     parser.add_argument("--scope", action="append", required=True, help="Repeatable: one path per flag.")
     parser.add_argument("--depends-on", action="append", default=[], help="Repeatable: one task id per flag.")
     parser.add_argument("--suggested-model", default="")
+    parser.add_argument(
+        "--test-path",
+        action="append",
+        default=[],
+        dest="test_paths",
+        help="Repeatable: one test file/dir per flag, run by CAUCE_TEST_CMD "
+        "(default pytest) before finish_task.py will merge this task. "
+        "Omit entirely for tasks that don't need one.",
+    )
     args = parser.parse_args()
 
     try:
@@ -88,6 +108,7 @@ def main() -> None:
             scope=args.scope,
             depends_on=args.depends_on,
             suggested_model=args.suggested_model,
+            test_paths=args.test_paths,
         )
     except CauceError as exc:
         fail(str(exc))

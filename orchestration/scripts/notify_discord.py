@@ -54,6 +54,11 @@ def _build_message(event: str, task: dict[str, Any], owner: str) -> str:
             f"[Cauce] Merge conflict on {task_id} ({title}) — "
             f"{owner}, please resolve manually and re-run finish_task.py"
         )
+    if event == "tests_failed":
+        return (
+            f"[Cauce] Declared tests failed on {task_id} ({title}) — "
+            f"{owner}, fix and re-run finish_task.py"
+        )
     return f"[Cauce] {event}: {task_id} ({title}) — {owner}"
 
 
@@ -114,7 +119,7 @@ def notify(event: str, task: dict[str, Any], owner: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Send a Cauce Discord notification manually.")
-    parser.add_argument("--event", required=True, choices=["claimed", "done", "conflict"])
+    parser.add_argument("--event", required=True, choices=["claimed", "done", "conflict", "tests_failed"])
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--owner", required=True)
     args = parser.parse_args()

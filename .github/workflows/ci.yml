@@ -21,13 +21,13 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r orchestration/requirements.txt
 
       # TODO: adjust to real stack — replace with the team's real linter
       # (ruff/flake8/eslint/etc.) once one is chosen.
-      - name: Syntax check scripts
-        run: python -m py_compile scripts/*.py boss-dashboard/app.py model-requester/app.py
+      - name: Syntax check Cauce scripts
+        run: python -m py_compile orchestration/scripts/*.py orchestration/boss-dashboard/app.py orchestration/model-requester/app.py
 
       # TODO: adjust to real stack — add real test invocation once tests exist.
       - name: Run tests
-        run: pytest -q || echo "No tests yet — TODO: add tests"
+        run: 'pytest -q || echo "No tests yet — TODO: add tests"'

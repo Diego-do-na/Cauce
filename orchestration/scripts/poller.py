@@ -8,7 +8,7 @@ Claude Code or Cursor itself — a human still reads the "TASK READY"
 announcement and starts the agent by hand in the printed worktree.
 
 Usage:
-    python scripts/poller.py [--interval 30] [--owner "Name"]
+    python orchestration/scripts/poller.py [--interval 30] [--owner "Name"]
 
 Nothing here needs to run 24/7 on a shared machine — each teammate runs
 their own poller (or doesn't, and just runs claim_task.py by hand).
@@ -23,11 +23,13 @@ import time
 
 from common import (
     CauceError,
-    REPO_ROOT,
+    ORCHESTRATION_ROOT,
+    assert_main_checkout,
     dependencies_satisfied,
     find_scope_conflict,
     get_git_user_name,
     load_tasks,
+    local_repo_lock,
     run_git,
     tasks_by_id,
 )
@@ -65,7 +67,11 @@ def _announce(title: str, task_id: str, description: str) -> None:
 
 def run_once(owner: str) -> None:
     try:
-        run_git(["pull", "--quiet"])
+        # Locked so this read-before-decide doesn't race another local
+        # process's own locked claim/finish critical section (e.g. a
+        # second poller, or a manual claim_task.py, sharing this checkout).
+        with local_repo_lock():
+            run_git(["pull", "--quiet"])
     except CauceError as exc:
         print(f"warning: git pull failed this cycle ({exc}); will retry next interval", file=sys.stderr)
         return
@@ -77,10 +83,10 @@ def run_once(owner: str) -> None:
         print(f"warning: could not read tasks.yaml this cycle ({exc})", file=sys.stderr)
         return
 
-    claim_script = REPO_ROOT / "scripts" / "claim_task.py"
+    claim_script = ORCHESTRATION_ROOT / "scripts" / "claim_task.py"
     result = subprocess.run(
         [sys.executable, str(claim_script), "--owner", owner],
-        cwd=REPO_ROOT,
+        cwd=ORCHESTRATION_ROOT,
         capture_output=True,
         text=True,
     )
@@ -104,6 +110,13 @@ def main() -> None:
     args = parser.parse_args()
 
     owner = args.owner or get_git_user_name()
+
+    try:
+        assert_main_checkout()
+    except CauceError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
     print(f"Cauce poller started for {owner!r} (interval={args.interval}s). Ctrl+C to stop.")
 
     try:

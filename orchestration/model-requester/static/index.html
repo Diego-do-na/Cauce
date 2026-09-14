@@ -120,6 +120,13 @@
       </div>
 
       <div class="field">
+        <label>Test paths <span style="font-weight:400; color:var(--text-faint);">(optional)</span></label>
+        <div id="test-path-rows"></div>
+        <button type="button" class="add-scope" id="add-test-path">+ add test path</button>
+        <div class="hint">Only for tasks worth gating on a real test run — leave empty otherwise. Run via CAUCE_TEST_CMD (default pytest) before finish_task.py will merge this task.</div>
+      </div>
+
+      <div class="field">
         <label for="depends-on">Depends on</label>
         <select id="depends-on" multiple></select>
         <div class="hint">Cmd/Ctrl-click to select multiple. Only tasks already in tasks.yaml appear here.</div>
@@ -128,11 +135,12 @@
       <div class="field">
         <label for="suggested-model">Suggested model</label>
         <select id="suggested-model">
-          <option value="claude-sonnet">claude-sonnet</option>
-          <option value="claude-opus">claude-opus</option>
-          <option value="cursor">cursor</option>
+          <option value="haiku">haiku</option>
+          <option value="sonnet">sonnet</option>
+          <option value="opus">opus</option>
+          <option value="fable">fable</option>
         </select>
-        <div class="hint">A hint only — never enforced.</div>
+        <div class="hint">A hint only — never enforced. These are Claude Code's own --model aliases; cursor-agent ignores this and uses CAUCE_CURSOR_CHEAP_MODEL instead.</div>
       </div>
 
       <div class="actions">
@@ -167,6 +175,18 @@
   document.getElementById("add-scope").addEventListener("click", () => addScopeRow());
   addScopeRow();
 
+  function addTestPathRow(value = "") {
+    const rows = document.getElementById("test-path-rows");
+    const row = document.createElement("div");
+    row.className = "scope-row";
+    row.innerHTML = `<input type="text" class="test-path-input" placeholder="tests/test_health.py" value="${esc(value)}">
+                      <button type="button" title="remove">&times;</button>`;
+    row.querySelector("button").addEventListener("click", () => row.remove());
+    rows.appendChild(row);
+  }
+
+  document.getElementById("add-test-path").addEventListener("click", () => addTestPathRow());
+
   async function loadDependsOnOptions() {
     const select = document.getElementById("depends-on");
     try {
@@ -190,6 +210,8 @@
 
     const scope = Array.from(document.querySelectorAll(".scope-input"))
       .map(i => i.value.trim()).filter(Boolean);
+    const testPaths = Array.from(document.querySelectorAll(".test-path-input"))
+      .map(i => i.value.trim()).filter(Boolean);
     const dependsOn = Array.from(document.getElementById("depends-on").selectedOptions).map(o => o.value);
 
     const payload = {
@@ -198,6 +220,7 @@
       scope,
       depends_on: dependsOn,
       suggested_model: document.getElementById("suggested-model").value,
+      test_paths: testPaths,
     };
 
     try {
@@ -212,6 +235,7 @@
       showBanner("success", `Created task <code>${esc(data.id)}</code>.`);
       document.getElementById("task-form").reset();
       document.getElementById("scope-rows").innerHTML = "";
+      document.getElementById("test-path-rows").innerHTML = "";
       addScopeRow();
       loadDependsOnOptions();
     } catch (err) {

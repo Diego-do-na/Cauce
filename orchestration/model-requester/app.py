@@ -2,17 +2,17 @@
 model-requester — write-only task intake.
 
 A tiny form that turns itself into a valid tasks.yaml entry via
-scripts/add_task.py. This app does not monitor the board — the one GET
-endpoint besides the form itself exists only to populate the "depends on"
-multi-select with current task ids, not to report status.
+orchestration/scripts/add_task.py. This app does not monitor the board —
+the one GET endpoint besides the form itself exists only to populate the
+"depends on" multi-select with current task ids, not to report status.
 
 Run:
-    uvicorn app:app --port 8001 --app-dir model-requester
-(or `cd model-requester && uvicorn app:app --port 8001`)
+    uvicorn app:app --port 8001 --app-dir orchestration/model-requester
+(or `cd orchestration/model-requester && uvicorn app:app --port 8001`)
 
 Run this from a machine with a normal git checkout of the repo (same
-assumption as the scripts/*.py CLIs) — it pushes directly to that
-checkout's remote.
+assumption as the orchestration/scripts/*.py CLIs) — it pushes directly to
+that checkout's remote.
 """
 
 from __future__ import annotations
@@ -27,11 +27,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 APP_DIR = Path(__file__).resolve().parent
-REPO_ROOT = APP_DIR.parent
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
+ORCH_ROOT = APP_DIR.parent          # .../orchestration
+sys.path.insert(0, str(ORCH_ROOT / "scripts"))
 
 from add_task import add_task  # noqa: E402
-from common import CauceError, load_tasks, run_git  # noqa: E402
+from common import CauceError, load_tasks, local_repo_lock, run_git  # noqa: E402
 
 app = FastAPI(title="Cauce Model Requester")
 
@@ -42,6 +42,7 @@ class TaskRequest(BaseModel):
     scope: list[str] = Field(default_factory=list)
     depends_on: list[str] = Field(default_factory=list)
     suggested_model: str = ""
+    test_paths: list[str] = Field(default_factory=list)
 
 
 @app.get("/api/tasks")
@@ -49,8 +50,9 @@ def list_tasks() -> JSONResponse:
     """Just enough state to populate the depends-on multi-select — a
     light git pull for freshness, then id/title/status only."""
     try:
-        run_git(["pull", "--quiet"])
-        data = load_tasks()
+        with local_repo_lock():
+            run_git(["pull", "--quiet"])
+            data = load_tasks()
     except CauceError as exc:
         return JSONResponse(status_code=503, content={"error": str(exc)})
     tasks = [
@@ -69,6 +71,7 @@ def create_task(req: TaskRequest) -> JSONResponse:
             scope=req.scope,
             depends_on=req.depends_on,
             suggested_model=req.suggested_model,
+            test_paths=req.test_paths,
         )
     except CauceError as exc:
         # Validation or git-race failure — a clean 400, never a traceback.

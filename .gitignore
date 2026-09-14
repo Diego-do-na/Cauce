@@ -2,7 +2,9 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-boss-dashboard/_mirror/
 .agents/
-SETUP.md
 .env
+
+# Cauce orchestration tooling — never product code, never shipped.
+orchestration/boss-dashboard/_mirror/
+orchestration/.git.lock
